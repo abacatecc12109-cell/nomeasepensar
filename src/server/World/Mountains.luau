@@ -101,7 +101,7 @@ local function writeTile(terrain, x0: number, z0: number, col, mat, wall)
 				local to = math.min(ny, math.ceil((h - y0) / RES))
 				for iy = from, to do
 					local bottom = y0 + (iy - 1) * RES
-					local o = math.clamp((h - bottom) / RES, 0, 1)
+					local o = math.clamp((h - 2 - bottom) / RES, 0, 1) -- 2 = meio voxel (veja TerrainBuilder)
 					if o > occ[ix][iy][iz] then
 						occ[ix][iy][iz] = o
 						mats[ix][iy][iz] = mat(x, bottom + 2, z, h, slope)

@@ -724,6 +724,15 @@ function Pieces.climb(c, parent: Instance, rng: Random)
 		truss.Parent = parent
 		Builder.stats.parts += 1
 	end
+	-- patamar sólido no alto, para sair da escalada sem cair
+	Builder.solid({
+		Size = Vector3.new(c.width + 3, 1, 7),
+		CFrame = CFrame.new(c.base + f * 2.9 + Vector3.new(0, c.height - 0.45, 0)) * rot,
+		Color = P.Moss,
+		Material = M.Grass,
+		Name = "ClimbTop",
+		Parent = parent,
+	})
 	local face = c.base - f * 2.5
 	-- painel atrás das vinhas: mostra de longe onde dá para subir
 	Builder.deco({

@@ -96,7 +96,14 @@ end
 -- Chão do mundo, colinas suaves, serras e picos distantes no horizonte.
 function TerrainBuilder.buildGround(terrain: Terrain, rng: Random, center: Vector3, clearance, blocked)
 	Builder.pace()
-	terrain:FillCylinder(CFrame.new(center.X, -12, center.Z), 24, 1150, M.Grass)
+	terrain:FillCylinder(CFrame.new(center.X, -18, center.Z), 24, 1150, M.Grass)
+	-- camada de cima em blocos: o cilindro arredonda a altura, o bloco não
+	for ix = -2, 1 do
+		for iz = -2, 1 do
+			Builder.pace()
+			terrain:FillBlock(CFrame.new(center.X + (ix + 0.5) * 570, -4, center.Z + (iz + 0.5) * 570), Vector3.new(570, 8, 570), M.Grass)
+		end
+	end
 	Builder.pace()
 	terrain:FillCylinder(CFrame.new(center.X, -30, center.Z), 12, 1150, M.Rock)
 
@@ -145,7 +152,7 @@ function TerrainBuilder.buildMesa(terrain: Terrain, rng: Random, clearance, rect
 		terrain:FillBlock(cf, Vector3.new(rect.width, height - 4, rect.length), theme.body)
 	end
 	Builder.pace()
-	terrain:FillBlock(frame(Vector3.new(rect.center.X, top - 2, rect.center.Z), rect.yaw), Vector3.new(rect.width, 4, rect.length), theme.top)
+	terrain:FillBlock(frame(Vector3.new(rect.center.X, top - 2, rect.center.Z), rect.yaw), Vector3.new(rect.width + 3, 4, rect.length + 3), theme.top)
 end
 
 -- Canal de água: escava e enche com água (riacho, rio da ravina, lago)
@@ -176,9 +183,32 @@ end
 	Constrói todo o terreno do layout.
 	Retorna informações úteis (centro do mundo) para os outros construtores.
 ]]
+-- O Roblox desenha a superfície meio voxel (2 studs) ACIMA do que foi preenchido.
+-- Tudo é preenchido 2 studs mais baixo, para o chão ficar na altura do layout.
+local DROP = Vector3.new(0, 2, 0)
+local function lowered(real)
+	local t = {}
+	function t:FillBlock(cf, size, material)
+		real:FillBlock(cf - DROP, size, material)
+	end
+	function t:FillCylinder(cf, height, radius, material)
+		real:FillCylinder(cf - DROP, height, radius, material)
+	end
+	function t:FillBall(center, radius, material)
+		real:FillBall(center - DROP, radius, material)
+	end
+	function t:ReadVoxels(region, res)
+		return real:ReadVoxels(region, res)
+	end
+	function t:WriteVoxels(region, res, mats, occ)
+		real:WriteVoxels(region, res, mats, occ)
+	end
+	return t
+end
+
 function TerrainBuilder.build(layout, clearance, rng: Random)
-	local terrain = workspace.Terrain
-	TerrainBuilder.configure(terrain)
+	TerrainBuilder.configure(workspace.Terrain)
+	local terrain = lowered(workspace.Terrain)
 
 	-- centro aproximado do mundo (para o chão e o horizonte)
 	local sum, n = Vector3.zero, 0
@@ -262,6 +292,16 @@ function TerrainBuilder.build(layout, clearance, rng: Random)
 			local h = c.height + 6
 			Builder.pace()
 			terrain:FillBlock(frame(c.base - f * 4 + Vector3.new(0, 2 + h / 2, 0), c.yaw), Vector3.new(c.width + 5, h, 8), M.Air)
+		end
+	end
+
+	-- trilhas na encosta: o paredão não pode invadir o espaço do corpo
+	for _, e in layout.elements do
+		if e.kind == "ledge" or e.kind == "waterfall" then
+			local lo, hi = math.min(e.entry.Y, e.exit.Y), math.max(e.entry.Y, e.exit.Y)
+			local h = hi - lo + 8
+			Builder.pace()
+			terrain:FillBlock(frame(Vector3.new(e.center.X, lo + 1 + h / 2, e.center.Z), e.yaw), Vector3.new(e.width + 9, h, e.length + 6), M.Air)
 		end
 	end
 
