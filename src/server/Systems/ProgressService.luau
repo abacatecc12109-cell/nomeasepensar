@@ -137,9 +137,7 @@ local function onPlayerAdded(player: Player)
 	if player.Character then
 		onCharacter(player, player.Character)
 	end
-	if ProgressService.worldReady then
-		player:LoadCharacter()
-	end
+	-- depois que o mundo fica pronto, CharacterAutoLoads cuida do nascimento
 end
 
 local function onReached(player: Player, index: number, data)

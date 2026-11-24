@@ -2,19 +2,16 @@
   "name": "MundoDasCerejeiras",
   "tree": {
     "$className": "DataModel",
-
     "ReplicatedStorage": {
       "Shared": {
         "$path": "src/shared"
       }
     },
-
     "ServerScriptService": {
       "Server": {
         "$path": "src/server"
       }
     },
-
     "StarterPlayer": {
       "$properties": {
         "CharacterWalkSpeed": 16,
@@ -29,7 +26,6 @@
         }
       }
     },
-
     "Workspace": {
       "$properties": {
         "Gravity": 196.2,
@@ -38,7 +34,6 @@
         "StreamingMinRadius": 256
       }
     },
-
     "Lighting": {
       "$properties": {
         "Technology": "Future",
@@ -51,10 +46,14 @@
         "ShadowSoftness": 0.35
       }
     },
-
     "SoundService": {
       "$properties": {
         "RespectFilteringEnabled": true
+      }
+    },
+    "StarterGui": {
+      "$properties": {
+        "ScreenOrientation": "LandscapeSensor"
       }
     }
   }

@@ -863,9 +863,9 @@ INST.__index = function(self, k)
 		return getSignal(self, k)
 	end
 	local props = rawget(self, "__props")
-	if k == "Position" and props.CFrame then
+	if k == "Position" and props.CFrame and isA(props.ClassName, "BasePart") then
 		return props.CFrame.Position
-	elseif k == "Orientation" and props.CFrame then
+	elseif k == "Orientation" and props.CFrame and isA(props.ClassName, "BasePart") then
 		local x, y, z = props.CFrame:ToOrientation()
 		return Vector3.new(math.deg(x), math.deg(y), math.deg(z))
 	elseif k == "AbsoluteSize" then
@@ -873,7 +873,7 @@ INST.__index = function(self, k)
 	elseif k == "AbsolutePosition" then
 		return Vector2.new(0, 0)
 	elseif k == "ViewportSize" then
-		return Vector2.new(1280, 720)
+		return props.ViewportSize or Vector2.new(1280, 720)
 	end
 	local v = props[k]
 	if v ~= nil then
@@ -926,12 +926,12 @@ INST.__newindex = function(self, k, v)
 		setParent(self, v)
 		return
 	end
-	if k == "Position" then
+	if k == "Position" and isA(props.ClassName, "BasePart") then
 		check(isV3(v), "Position espera Vector3")
 		local cf = props.CFrame or CFrame.new()
 		props.CFrame = CFrame.new(v) * cf.Rotation
 		return
-	elseif k == "Orientation" then
+	elseif k == "Orientation" and isA(props.ClassName, "BasePart") then
 		local cf = props.CFrame or CFrame.new()
 		props.CFrame = CFrame.new(cf.Position) * CFrame.fromOrientation(math.rad(v.X), math.rad(v.Y), math.rad(v.Z))
 		return
@@ -1567,6 +1567,17 @@ function M.install(target)
 		end
 		table.insert(M.warnings, table.concat(parts, " "))
 	end
+	target.RaycastParams = {
+		new = function()
+			return setmetatable({ FilterType = Enum.RaycastFilterType.Exclude, FilterDescendantsInstances = {} }, { __type = "RaycastParams" })
+		end,
+	}
+	local userSettings = { GetService = function()
+		return { SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel5 }
+	end }
+	target.UserSettings = function()
+		return userSettings
+	end
 	target.wait = task.wait
 	target.spawn = task.spawn
 	target.delay = task.delay
@@ -1575,5 +1586,6 @@ end
 M.services = services
 M.workspace = workspace
 M.INST = INST
+M.methods = methods
 
 return M
