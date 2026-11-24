@@ -4,7 +4,7 @@
 	Interface simples e bonita:
 	  * cartão (canto superior esquerdo): região atual, altura real, checkpoint
 	  * cronômetro (topo, centro) com recorde da sessão
-	  * medidor vertical de subida (direita) com as 5 regiões, posição atual
+	  * medidor vertical de subida (direita) com as 7 regiões, posição atual
 	    e altura máxima alcançada
 	  * avisos: checkpoint alcançado, nova região, anúncios
 	  * tela de chegada com tempo, recorde e botão para recomeçar

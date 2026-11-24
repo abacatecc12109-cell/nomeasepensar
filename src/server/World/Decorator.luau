@@ -14,6 +14,7 @@ local Builder = require(script.Parent.Builder)
 local Nature = require(script.Parent.Nature)
 local Structures = require(script.Parent.Structures)
 local Water = require(script.Parent.Water)
+local Clouds = require(script.Parent.Clouds)
 
 local Decorator = {}
 local P = Config.Palette
@@ -29,13 +30,13 @@ local THEMES = {
 	village = { density = 0.55, items = { cherry = 10, bush = 18, flowers = 40, lantern = 6, rock = 2 } },
 	village_high = { density = 0.8, items = { cherry = 18, bush = 16, flowers = 40, lantern = 4 } },
 	village_ledge = { density = 0.9, items = { cherry = 16, bush = 18, flowers = 30, rock = 6 } },
-	cliff_ledge = { density = 0.9, items = { green = 20, bush = 24, flowers = 16, rock = 16 } },
-	cliff_mid = { density = 0.9, items = { green = 20, cherry = 6, bush = 24, flowers = 16, rock = 14 } },
-	cliff_terrace = { density = 0.9, items = { green = 22, bush = 22, flowers = 14, rock = 16 } },
-	cliff_high = { density = 0.9, items = { green = 20, cherry = 8, bush = 22, flowers = 18, rock = 12 } },
-	cliff_top = { density = 0.9, items = { green = 22, bush = 22, flowers = 16, rock = 12 } },
-	cliff_crown = { density = 0.9, items = { green = 22, bush = 22, flowers = 16, rock = 12 } },
-	forest_floor = { density = 1.0, items = { green = 14, bush = 26, mushroom = 22, glowmushroom = 10, rock = 14, flowers = 8 } },
+	cliff_ledge = { density = 0.9, items = { green = 12, pine = 14, bush = 24, flowers = 16, rock = 16 } },
+	cliff_mid = { density = 0.9, items = { green = 12, pine = 14, cherry = 6, bush = 24, flowers = 16, rock = 14 } },
+	cliff_terrace = { density = 0.9, items = { green = 13, pine = 15, bush = 22, flowers = 14, rock = 16 } },
+	cliff_high = { density = 0.9, items = { green = 12, pine = 14, cherry = 8, bush = 22, flowers = 18, rock = 12 } },
+	cliff_top = { density = 0.9, items = { green = 13, pine = 15, bush = 22, flowers = 16, rock = 12 } },
+	cliff_crown = { density = 0.9, items = { green = 13, pine = 15, bush = 22, flowers = 16, rock = 12 } },
+	forest_floor = { density = 1.0, items = { green = 10, pine = 6, bush = 26, mushroom = 22, glowmushroom = 10, rock = 14, flowers = 8 } },
 	celestial = { density = 1.0, items = { bigcherry = 14, glowflowers = 30, flowers = 22, bush = 10, lantern = 5 } },
 	sanctuary = { density = 1.0, items = { bigcherry = 12, glowflowers = 34, flowers = 18, lantern = 6 } },
 	summit = { density = 0.9, items = { cherry = 10, glowflowers = 36, flowers = 20, lantern = 4 } },
@@ -44,8 +45,11 @@ local THEMES = {
 
 local FOOTPRINT = {
 	cherry = { r = 5.5, h = 16 },
+	farcherry = { r = 6, h = 18 },
+	fargreen = { r = 5.5, h = 20 },
 	bigcherry = { r = 9, h = 30 },
 	green = { r = 5, h = 16 },
+	pine = { r = 4.2, h = 20 },
 	bush = { r = 2.4, h = 4 },
 	flowers = { r = 1.3, h = 1.5 },
 	glowflowers = { r = 1.3, h = 1.5 },
@@ -73,10 +77,16 @@ end
 local function spawnItem(kind: string, pos: Vector3, rng: Random, parent: Instance)
 	if kind == "cherry" then
 		Nature.cherryTree(pos, rng:NextNumber(0.85, 1.3), rng, parent)
+	elseif kind == "farcherry" then
+		Nature.cherryTree(pos, rng:NextNumber(1, 1.5), rng, parent, true)
+	elseif kind == "fargreen" then
+		Nature.greenTree(pos, rng:NextNumber(1, 1.5), rng, parent, 0.4, true)
 	elseif kind == "bigcherry" then
 		Nature.cherryTree(pos, rng:NextNumber(1.8, 2.5), rng, parent)
 	elseif kind == "green" then
-		Nature.greenTree(pos, rng:NextNumber(0.9, 1.35), rng, parent)
+		Nature.greenTree(pos, rng:NextNumber(0.9, 1.35), rng, parent, 0.3)
+	elseif kind == "pine" then
+		Nature.greenTree(pos, rng:NextNumber(0.9, 1.4), rng, parent, 1)
 	elseif kind == "bush" then
 		Nature.bush(pos, rng:NextNumber(0.8, 1.3), rng, parent)
 	elseif kind == "flowers" then
@@ -193,7 +203,10 @@ local function pathLanterns(zone, rng: Random, parent: Instance, clearance)
 end
 
 -- Chão em volta da montanha (florestas e prados ao redor)
-local function decorateGround(layout, center: Vector3, rng: Random, parent: Instance, clearance)
+local function decorateGround(layout, center: Vector3, rng: Random, parent: Instance, clearance, groundHeight)
+	groundHeight = groundHeight or function()
+		return 0
+	end
 	local blocked = {}
 	for _, z in layout.zones do
 		if z.surface == "terrain" and z.top > 0.5 then
@@ -224,6 +237,7 @@ local function decorateGround(layout, center: Vector3, rng: Random, parent: Inst
 		local cherryGrove = rng:NextNumber() < 0.55
 		for _ = 1, rng:NextInteger(4, 8) do
 			local p = groveCenter + Vector3.new(rng:NextNumber(-26, 26), 0, rng:NextNumber(-26, 26))
+			p = Vector3.new(p.X, groundHeight(p.X, p.Z), p.Z)
 			local ok = true
 			for _, rect in blocked do
 				if insideRect(rect, p, 6) then
@@ -237,13 +251,14 @@ local function decorateGround(layout, center: Vector3, rng: Random, parent: Inst
 				end
 			end
 			if ok then
-				local kind = cherryGrove and "cherry" or ((rng:NextNumber() < 0.7) and "green" or "cherry")
+				local kind = cherryGrove and "farcherry" or ((rng:NextNumber() < 0.7) and "fargreen" or "farcherry")
 				if tryPlace(kind, p, rng, parent, clearance) then
 					placed += 1
 				end
 				-- arbustos e flores ao redor de cada árvore
 				for _ = 1, 2 do
 					local q = p + Vector3.new(rng:NextNumber(-8, 8), 0, rng:NextNumber(-8, 8))
+					q = Vector3.new(q.X, groundHeight(q.X, q.Z), q.Z)
 					tryPlace((rng:NextNumber() < 0.5) and "bush" or "flowers", q, rng, parent, clearance)
 				end
 			end
@@ -254,6 +269,7 @@ local function decorateGround(layout, center: Vector3, rng: Random, parent: Inst
 		local angle = rng:NextNumber(0, math.pi * 2)
 		local dist = rng:NextNumber(120, 420)
 		local p = center + Vector3.new(math.cos(angle) * dist, 0, math.sin(angle) * dist)
+		p = Vector3.new(p.X, groundHeight(p.X, p.Z), p.Z)
 		local ok = true
 		for _, rect in blocked do
 			if insideRect(rect, p, 4) then
@@ -287,6 +303,26 @@ local function forestGiants(zone, rng: Random, parent: Instance, clearance)
 			clearance:reserve(p - half, p + half + Vector3.new(0, height, 0), "giant")
 		end
 	end
+end
+
+-- Algumas nuvens enormes ao redor do mapa, em alturas variadas.
+function Decorator.skyClouds(center: Vector3, rng: Random, parent: Instance, clearance): number
+	local placed = 0
+	local tries = 0
+	while placed < 9 and tries < 60 do
+		tries += 1
+		local a = (placed / 9) * math.pi * 2 + rng:NextNumber(-0.25, 0.25)
+		local d = rng:NextNumber(420, 900)
+		local scale = rng:NextNumber(22, 40)
+		local p = Vector3.new(center.X + math.cos(a) * d, rng:NextNumber(260, 760), center.Z + math.sin(a) * d)
+		local half = Vector3.new(scale * 2.6, scale * 1.2, scale * 2.6)
+		if clearance:isFree(p - half, p + half) then
+			Clouds.sky(p, scale, rng, parent, (rng:NextNumber() < 0.5) and "sunsetcloud" or "cloud")
+			clearance:reserve(p - half, p + half, "skycloud")
+			placed += 1
+		end
+	end
+	return placed
 end
 
 function Decorator.build(layout, root: Instance, rng: Random, clearance, worldInfo)
@@ -385,7 +421,10 @@ function Decorator.build(layout, root: Instance, rng: Random, clearance, worldIn
 
 	-- 4) chão em volta da montanha
 	local groundFolder = Builder.folder("Arredores", root)
-	total += decorateGround(layout, worldInfo.center, rng, groundFolder, clearance)
+	total += decorateGround(layout, worldInfo.center, rng, groundFolder, clearance, worldInfo.groundHeight)
+
+	-- 5) poucas nuvens grandes flutuando no céu (longe do percurso)
+	total += Decorator.skyClouds(worldInfo.center, rng, Builder.folder("Ceu", root), clearance)
 	return total
 end
 

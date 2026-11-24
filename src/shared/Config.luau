@@ -103,6 +103,39 @@ Config.Palette = {
 	},
 }
 
+-- Ambientação sonora. Todos os áudios são públicos do Roblox (Pro Sound
+-- Effects e APM Music), liberados para qualquer experiência. Para trocar um
+-- som, basta trocar o número aqui.
+local function id(n: number): string
+	return "rbxassetid://" .. n
+end
+
+Config.Sounds = {
+	-- dois sons em loop por região (misturados com volumes diferentes)
+	Ambience = {
+		{ { id(9116971174), 0.45 }, { id(9116258071), 0.25 } }, -- 1 Jardim: pássaros + vento nas folhas
+		{ { id(9119383777), 0.4 }, { id(9120750367), 0.22 } }, -- 2 Vila: pássaros + sinos de vento
+		{ { id(9112832297), 0.4 }, { id(9119646672), 0.3 } }, -- 3 Penhascos: pássaros da montanha + riacho
+		{ { id(9114894498), 0.35 }, { id(9116258071), 0.3 } }, -- 4 Floresta: insetos + folhas
+		{ { id(9120750073), 0.3 }, { id(9116971475), 0.35 } }, -- 5 Celestial: sinos de vento + pássaros
+		{ { id(9114057128), 0.32 }, { id(9116390863), 0.2 } }, -- 6 Nuvens: vento leve + brilho mágico
+		{ { id(9114057104), 0.3 }, { id(9116390952), 0.22 } }, -- 7 Entardecer: vento + brilho mágico
+	},
+	-- trilha calma, tocada em sequência, bem baixinha
+	Music = {
+		{ id(1839930857), 0.2 }, -- Sparkle Breeze (APM)
+		{ id(9046862941), 0.2 }, -- Sunset Chill (APM)
+		{ id(140619137413701), 0.18 }, -- Live Piano Stories 06 (APM)
+	},
+	Waterfall = { id(9120549564), 0.7 }, -- som 3D em cada cachoeira
+	Checkpoint = { id(9116395089), 0.6 },
+	Finish = { id(1842282377), 0.7 },
+	NewRegion = { id(1840525342), 0.45 },
+	FallReset = { id(9113078052), 0.5 },
+	PlankCreak = { id(9120839010), 0.5 },
+	CloudPuff = { id(9113840530), 0.45 },
+}
+
 -- Semente fixa: o mundo é sempre igual (bom para testes e para os jogadores
 -- aprenderem o percurso).
 Config.WorldSeed = 20261124

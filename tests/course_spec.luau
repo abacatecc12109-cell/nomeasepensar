@@ -79,13 +79,13 @@ describe("layout", function()
 		end
 	end)
 
-	it("tem as 5 regiões em ordem crescente", function()
+	it("tem as 7 regiões em ordem crescente", function()
 		local last = 1
 		for _, e in layout.elements do
 			expect(e.region >= last, "região voltou de " .. last .. " para " .. e.region .. " no elemento " .. e.id)
 			last = e.region
 		end
-		expect(last == 5, "a última região deveria ser 5, é " .. last)
+		expect(last == 7, "a última região deveria ser 7, é " .. last)
 	end)
 
 	it("cada salto respeita a física do personagem", function()
@@ -204,7 +204,7 @@ describe("checkpoints", function()
 		for _, cp in layout.checkpoints do
 			per[cp.region] = (per[cp.region] or 0) + 1
 		end
-		for r = 1, 5 do
+		for r = 1, 7 do
 			expect((per[r] or 0) >= 1, "região " .. r .. " sem checkpoint")
 		end
 	end)

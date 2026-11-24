@@ -89,7 +89,7 @@ describe("cliente", function()
 		local text = ui.InfoCard.Height.Text
 		expect(string.find(text, "Altura: 1%d%d m") ~= nil, "altura errada: " .. text)
 		expect(ui.InfoCard.Region.Text == "Penhascos Verdes", "região errada: " .. ui.InfoCard.Region.Text)
-		expect(string.find(ui.InfoCard.Checkpoint.Text, "Checkpoint 1/16") ~= nil, ui.InfoCard.Checkpoint.Text)
+		expect(string.find(ui.InfoCard.Checkpoint.Text, "Checkpoint 1/80") ~= nil, ui.InfoCard.Checkpoint.Text)
 		expect(string.find(ui.Timer.Time.Text, "^%d+:%d%d%.%d%d$") ~= nil, "cronômetro: " .. ui.Timer.Time.Text)
 	end)
 
@@ -103,7 +103,7 @@ describe("cliente", function()
 		expect(not ui.Finish.Visible, "tela não fechou")
 	end)
 
-	it("checkpoint atual fica rosa e brilhando", function()
+	it("checkpoint atual (só a estrela) fica rosa e brilhando", function()
 		player:SetAttribute("Checkpoint", 2)
 		frames(1, 1 / 30)
 		local m
@@ -113,7 +113,66 @@ describe("cliente", function()
 			end
 		end
 		expect(m.Crystal.Glow.Brightness > 0, "sem brilho")
-		expect(m.Ring.Color == Color3.fromRGB(255, 150, 190), "não mudou de cor")
+		expect(m.Crystal.Color == Color3.fromRGB(255, 150, 190), "não mudou de cor")
+		expect(m:FindFirstChild("Banner") == nil and m:FindFirstChild("Ring") == nil, "checkpoint deveria ter só a estrela")
+	end)
+
+	it("céu em degradê amarelo → laranja → rosa e um sol", function()
+		local sky = require(StarterPlayer.StarterPlayerScripts.Client.Controllers.SkyController)
+		local horizon, middle, top = sky.colorAt(1), sky.colorAt(22), sky.colorAt(70)
+		-- amarelo: muito vermelho e verde, pouco azul
+		expect(horizon.R > 0.95 and horizon.G > 0.85 and horizon.B < 0.6, "horizonte deveria ser amarelo")
+		-- laranja: verde médio
+		expect(middle.R > 0.95 and middle.G > 0.55 and middle.G < 0.75 and middle.B < 0.5, "meio deveria ser laranja")
+		-- rosa claro: azul alto
+		expect(top.R > 0.95 and top.B > 0.78 and top.G > 0.75, "topo deveria ser rosa claro")
+		expect(sky.dome and #sky.dome:GetChildren() > 100, "cúpula do céu não foi montada")
+		frames(2, 1 / 30)
+		local cam = workspace.CurrentCamera.CFrame.Position
+		local sun = sky.sun.PrimaryPart.Position
+		expect((sun - cam).Magnitude > 1000, "sol perto demais")
+		expect(sun.Y > cam.Y, "sol abaixo do horizonte")
+		local Lighting = game:GetService("Lighting")
+		expect(Lighting.Sky.CelestialBodiesShown == false, "o céu padrão não deveria mostrar outro sol")
+		expect(workspace.Terrain.Clouds.Cover < 0.05, "nuvens volumétricas deveriam estar desligadas (poucas nuvens)")
+		local n = #workspace.Mundo.Cenario.Ceu:GetChildren()
+		expect(n >= 4 and n <= 12, "deveria ter poucas nuvens no céu: " .. n)
+	end)
+
+	it("ambientação sonora troca com a região", function()
+		local sound = require(StarterPlayer.StarterPlayerScripts.Client.Controllers.SoundController)
+		local SoundService = game:GetService("SoundService")
+		expect(SoundService:FindFirstChild("Ambiente"), "sem SoundGroup")
+		expect(sound.music and sound.music.SoundId ~= "", "sem trilha")
+		sound.setRegion(6)
+		expect(sound.currentRegion() == 6, "não trocou de região")
+		local playing = 0
+		for _, s in SoundService.SomDeFundo:GetChildren() do
+			if string.find(s.Name, "Regiao6") then
+				playing += 1
+				expect(string.find(s.SoundId, "^rbxassetid://%d+$") ~= nil, "id de som inválido: " .. s.SoundId)
+			end
+		end
+		expect(playing == 2, "região 6 deveria ter 2 loops: " .. playing)
+		-- cachoeiras ganham som 3D
+		local sheet = CollectionService:GetTagged("Waterfall")[1]
+		expect(sheet:FindFirstChild("Agua"), "cachoeira sem som")
+		-- botão de som
+		sound.button.Activated:Fire()
+		expect(sound.muted and SoundService.Ambiente.Volume == 0, "não silenciou")
+		sound.button.Activated:Fire()
+		expect(not sound.muted and SoundService.Ambiente.Volume == 1, "não voltou o som")
+	end)
+
+	it("pássaros e borboletas dão vida à paisagem", function()
+		local life = require(StarterPlayer.StarterPlayerScripts.Client.Controllers.LifeController)
+		expect(#life.flocks >= 3, "poucos bandos")
+		local b = life.flocks[1].birds[1]
+		local before = b.body.Position
+		frames(10, 1 / 30)
+		expect(#life.butterflies > 0, "sem borboletas")
+		expect(b.body.Position ~= nil, "pássaro sem posição")
+		local _ = before
 	end)
 
 	it("escala a interface em tela de celular", function()

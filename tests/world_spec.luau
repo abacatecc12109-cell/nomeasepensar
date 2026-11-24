@@ -24,14 +24,29 @@ describe("servidor", function()
 	end)
 
 	it("respeita o orçamento de partes para celular", function()
+		-- partes por pasta (ajuda a achar o que pesa)
+		for _, folder in workspace.Mundo:GetChildren() do
+			for _, sub in folder:GetChildren() do
+				local n = 0
+				for _, d in sub:GetDescendants() do
+					if d:IsA("BasePart") then
+						n += 1
+					end
+				end
+				if n > 300 then
+					log(string.format("%s/%s: %d partes", folder.Name, sub.Name, n))
+				end
+			end
+		end
 		expect(Roblox.stats.parts < 16000, "partes demais: " .. Roblox.stats.parts)
 	end)
 
 	it("publica as informações do percurso", function()
 		local info = ReplicatedStorage:FindFirstChild("CourseInfo")
 		expect(info and info:GetAttribute("Ready"), "CourseInfo ausente")
-		expect(info:GetAttribute("RegionCount") == 5, "deveria ter 5 regiões")
-		for i = 2, 5 do
+		expect(info:GetAttribute("RegionCount") == 7, "deveria ter 7 regiões")
+		expect(info:GetAttribute("CheckpointCount") == 80, "deveria ter 80 fases")
+		for i = 2, 7 do
 			expect(info:GetAttribute("Region" .. i .. "Start") > info:GetAttribute("Region" .. (i - 1) .. "Start"), "regiões fora de ordem")
 		end
 		log(string.format("topo a %.0f studs, %d checkpoints", info:GetAttribute("SummitY"), info:GetAttribute("CheckpointCount")))

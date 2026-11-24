@@ -17,6 +17,7 @@ local Config = require(Shared.Config)
 local World = script.Parent.Parent.World
 local Builder = require(World.Builder)
 local Structures = require(World.Structures)
+local Clouds = require(World.Clouds)
 
 local Pieces = {}
 local P = Config.Palette
@@ -241,6 +242,35 @@ padStyles.stone = function(e, cf, parent, rng)
 	return topBox(cf, e.width, 2, e.length, { Color = Builder.vary(P.RockLight, rng, 0.04), Material = M.Slate, Name = "Stone", Parent = parent })
 end
 
+-- Nuvem fofa (colisor invisível exato + bolas)
+function padStyles.cloud(e, cf, parent, rng)
+	local c = topCollider(cf, e.width, 1.6, e.length, parent)
+	c.Name = "CloudTop"
+	Clouds.platform(cf, e.width, e.length, rng, parent, e.style)
+	return c
+end
+padStyles.sunsetcloud = padStyles.cloud
+
+-- Pedra-estrela dourada (plataforma pequena, de precisão)
+function padStyles.star(e, cf, parent, rng)
+	local c = topCollider(cf, e.width, 1, e.length, parent)
+	c.Name = "StarTop"
+	local gold = Color3.fromRGB(255, 214, 128)
+	for k = 0, 1 do
+		Builder.deco({
+			Size = Vector3.new(e.width * 0.92, 0.9, e.length * 0.92),
+			CFrame = cf * CFrame.new(0, -0.45, 0) * CFrame.Angles(0, math.rad(45 * k), 0),
+			Color = k == 0 and gold or Color3.fromRGB(255, 232, 170),
+			Material = M.Neon,
+			CastShadow = false,
+			Name = "StarPoint",
+			Parent = parent,
+		})
+	end
+	Builder.ball((cf * CFrame.new(0, -1.3, 0)).Position, e.width * 0.32, { Color = Color3.fromRGB(255, 196, 150), Material = M.Neon, Name = "StarCore", Parent = parent })
+	return c
+end
+
 function Pieces.pad(e, parent: Instance, rng: Random)
 	local cf = Builder.frameOf(e.center, e.yaw)
 	local style = padStyles[e.style] or padStyles.stone
@@ -255,6 +285,37 @@ function Pieces.beam(e, parent: Instance, rng: Random)
 	local cf, length = slopeFrame(e)
 	if e.style == "plank" then
 		topBox(cf, e.width, 0.5, length, { Color = P.WoodLight, Material = M.WoodPlanks, Name = "Plank", Parent = parent })
+		return
+	end
+	if e.style == "rainbow" then
+		-- arco-íris: faixas coloridas lado a lado sobre um colisor único
+		topCollider(cf, e.width, 0.6, length, parent)
+		local bands = {
+			Color3.fromRGB(255, 150, 150),
+			Color3.fromRGB(255, 196, 140),
+			Color3.fromRGB(255, 236, 150),
+			Color3.fromRGB(170, 226, 160),
+			Color3.fromRGB(150, 200, 246),
+			Color3.fromRGB(196, 170, 240),
+		}
+		local bw = e.width / #bands
+		for i, color in bands do
+			Builder.deco({
+				Size = Vector3.new(bw, 0.5, length),
+				CFrame = cf * CFrame.new(-e.width / 2 + (i - 0.5) * bw, -0.25, 0),
+				Color = color,
+				Material = M.SmoothPlastic,
+				Transparency = 0.1,
+				CastShadow = false,
+				Name = "Band",
+				Parent = parent,
+			})
+		end
+		-- tufos de nuvem segurando as pontas
+		for _, z in { -length / 2, length / 2 } do
+			local p = cf * CFrame.new(0, -1.6, z)
+			Builder.ball(p.Position, 1.5, { Color = Color3.fromRGB(252, 250, 255), Name = "Puff", Parent = parent })
+		end
 		return
 	end
 	topCollider(cf, e.width, 0.8, length, parent)
@@ -466,6 +527,19 @@ function Pieces.collapse(e, parent: Instance, rng: Random)
 	local cf, length = slopeFrame(e)
 	local n = e.planks
 	local plankLen = length / n
+	if e.style == "cloud" or e.style == "sunsetcloud" then
+		-- ponte de nuvens: cada pedaço some ao ser pisado
+		for i = 0, n - 1 do
+			local z = -length / 2 + (i + 0.5) * plankLen
+			local pcf = cf * CFrame.new(0, 0, z)
+			local plank = Builder.collider({ Size = Vector3.new(e.width, 0.8, plankLen), CFrame = pcf * CFrame.new(0, -0.4, 0), Name = "Plank", Parent = parent })
+			Clouds.platform(pcf, e.width, plankLen, rng, plank, e.style)
+			plank:SetAttribute("Delay", 0.45)
+			plank:SetAttribute("Respawn", 3.5)
+			plank:AddTag(Tags.CollapsingPlank)
+		end
+		return
+	end
 	for i = 0, n - 1 do
 		local z = -length / 2 + (i + 0.5) * plankLen
 		local plank = Builder.solid({
@@ -487,6 +561,16 @@ end
 
 function Pieces.fallstone(e, parent: Instance, rng: Random)
 	local cf = Builder.frameOf(e.center, e.yaw)
+	if e.style == "cloud" or e.style == "sunsetcloud" then
+		-- nuvem que se desfaz: o colisor invisível leva as bolas junto
+		local cloud = topCollider(cf, e.width, 1.6, e.length, parent)
+		cloud.Name = "LooseCloud"
+		Clouds.platform(cf, e.width, e.length, rng, cloud, e.style)
+		cloud:SetAttribute("Delay", e.fallDelay or 0.55)
+		cloud:SetAttribute("Respawn", 3.5)
+		cloud:AddTag(Tags.FallingStone)
+		return
+	end
 	local marble = e.style == "marble"
 	local stone = topBox(cf, e.width, 2.2, e.length, {
 		Color = marble and Color3.fromRGB(236, 230, 224) or Builder.vary(Color3.fromRGB(150, 140, 128), rng, 0.04),
@@ -522,10 +606,13 @@ local moverStyles = {
 		end
 	end,
 	cloudstone = function(model, cf, e, rng)
-		for i = 1, 4 do
-			local a = (i / 4) * math.pi * 2
-			Builder.ball((cf * CFrame.new(math.cos(a) * e.width * 0.45, -1.2, math.sin(a) * e.length * 0.45)).Position, 1.6, { Color = Color3.fromRGB(244, 244, 250), Name = "Cloud", Parent = model })
-		end
+		Clouds.platform(cf, e.width, e.length, rng, model, "cloudstone")
+	end,
+	cloud = function(model, cf, e, rng)
+		Clouds.platform(cf, e.width, e.length, rng, model, "cloud")
+	end,
+	sunsetcloud = function(model, cf, e, rng)
+		Clouds.platform(cf, e.width, e.length, rng, model, "sunsetcloud")
 	end,
 	petal = function(model, cf, e)
 		Builder.deco({ Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, e.width + 1.4, e.length + 1.4), CFrame = cf * CFrame.new(0, -1.6, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = P.BlossomLight, Name = "Petal", Parent = model })
@@ -547,6 +634,11 @@ function Pieces.mover(e, parent: Instance, rng: Random)
 	}
 	local look = materials[e.style] or materials.stone
 	local platform = topBox(cf, e.width, e.thickness, e.length, { Color = look[1], Material = look[2], Name = "Platform", Parent = model })
+	if Clouds.Palettes[e.style] then
+		-- nuvens: a plataforma vira só colisor; o visual são as bolas
+		platform.Transparency = 1
+		platform.CastShadow = false
+	end
 	local deco = moverStyles[e.style]
 	if deco then
 		deco(model, cf, e, rng)
@@ -661,6 +753,14 @@ end
 
 function Pieces.zonePath(zone, parent: Instance, rng: Random)
 	local deck = zone.surface == "deck"
+	if deck and (zone.theme == "cloud_deck" or zone.theme == "sunset_deck") then
+		-- ilha de nuvem: colisor exato + nuvem fofa em camadas
+		local cf = Builder.frameOf(zone.center, zone.yaw)
+		local top = topCollider(cf, zone.width, 1.2, zone.length, parent)
+		top.Name = "Island"
+		Clouds.island(cf, zone.width, zone.length, rng, parent, zone.theme == "sunset_deck" and "sunsetcloud" or "cloud")
+		return
+	end
 	if deck then
 		local cf = Builder.frameOf(zone.center, zone.yaw)
 		topBox(cf, zone.width, 1.2, zone.length, { Color = P.Wood, Material = M.WoodPlanks, Name = "Deck", Parent = parent })
@@ -705,7 +805,7 @@ function Pieces.zonePath(zone, parent: Instance, rng: Random)
 end
 
 -- ===================================================================
--- Checkpoint (santuário com cristal)
+-- Checkpoint (estrela brilhante flutuando)
 -- ===================================================================
 
 function Pieces.checkpoint(cp, lateral: number, parent: Instance)
@@ -713,39 +813,17 @@ function Pieces.checkpoint(cp, lateral: number, parent: Instance)
 	local f = Vector3.new(math.sin(cp.yaw), 0, math.cos(cp.yaw))
 	local right = Vector3.new(-math.cos(cp.yaw), 0, math.sin(cp.yaw))
 	local pos = cp.position
-	local base = Builder.cylinder(pos - Vector3.new(0, 0.6, 0), pos + Vector3.new(0, 0.3, 0), 3.4, {
-		Color = P.CheckpointIdle,
-		Material = M.Marble,
-		Name = "Base",
-		Parent = model,
-	}, false)
-	Builder.cylinder(pos + Vector3.new(0, 0.29, 0), pos + Vector3.new(0, 0.34, 0), 2.6, {
-		Color = P.CheckpointIdle,
-		Material = M.Neon,
-		Name = "Ring",
-		Parent = model,
-	})
-	-- pilar com cristal ao lado do caminho
+	-- só a estrela brilhante, flutuando ao lado do caminho
 	local side = pos + right * lateral
-	Builder.solid({ Size = Vector3.new(1.2, 4, 1.2), CFrame = CFrame.lookAt(side + Vector3.new(0, 2, 0), side + Vector3.new(0, 2, 0) + f), Color = P.RockLight, Material = M.Marble, Name = "Pillar", Parent = model })
 	local crystal = Builder.deco({
 		Size = Vector3.new(1.3, 1.3, 1.3),
-		CFrame = CFrame.new(side + Vector3.new(0, 5.4, 0)) * CFrame.Angles(math.rad(45), 0, math.rad(45)),
+		CFrame = CFrame.new(side + Vector3.new(0, 4.6, 0)) * CFrame.Angles(math.rad(45), 0, math.rad(45)),
 		Color = P.CheckpointIdle,
 		Material = M.Neon,
 		Name = "Crystal",
 		Parent = model,
 	})
-	local flagPos = side + Vector3.new(0, 3.4, 0) + f * 1.7
-	local flag = Builder.deco({
-		Size = Vector3.new(0.15, 2.2, 3),
-		CFrame = CFrame.lookAt(flagPos, flagPos + f),
-		Color = P.CheckpointIdle,
-		Material = M.Fabric,
-		Name = "Banner",
-		Parent = model,
-	})
-	flag.CastShadow = false
+	crystal.CastShadow = false
 	local glow = Instance.new("PointLight")
 	glow.Name = "Glow"
 	glow.Color = P.CheckpointActive
@@ -778,7 +856,7 @@ function Pieces.checkpoint(cp, lateral: number, parent: Instance)
 	trigger.CanCollide = false
 	trigger.CanQuery = false
 	trigger.CanTouch = true
-	model.PrimaryPart = base
+	model.PrimaryPart = crystal
 	model:SetAttribute(Config.Attr.CheckpointIndex, cp.index)
 	model:SetAttribute("Label", cp.label or ("Checkpoint " .. cp.index))
 	model:SetAttribute("Finish", cp.finish)
