@@ -10,6 +10,13 @@ local CollectionService = game:GetService("CollectionService")
 local UserInputService = game:GetService("UserInputService")
 
 runScript(ServerScriptService.Server.Main)
+for _ = 1, 5000 do -- a construção faz pausas
+	Roblox.step(0.1)
+	local info = game:GetService("ReplicatedStorage"):FindFirstChild("CourseInfo")
+	if info and info:GetAttribute("Ready") then
+		break
+	end
+end
 Roblox.step(0.1)
 local player = Roblox.addPlayer("Cliente", 7)
 Roblox.step(0.1)

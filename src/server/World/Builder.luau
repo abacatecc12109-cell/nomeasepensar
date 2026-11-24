@@ -17,6 +17,16 @@ local DEFAULT_MATERIAL = Enum.Material.SmoothPlastic
 local stats = { parts = 0 }
 Builder.stats = stats
 
+-- Pausa a construção de tempos em tempos. Sem isso o Roblox encerra o script
+-- ("exhausted allowed execution time") em máquinas lentas.
+local lastPause = os.clock()
+function Builder.pace()
+	if os.clock() - lastPause > 0.05 then
+		task.wait()
+		lastPause = os.clock()
+	end
+end
+
 local function apply(part: BasePart, props)
 	for k, v in props do
 		if k ~= "Parent" then
@@ -29,6 +39,7 @@ local function apply(part: BasePart, props)
 end
 
 local function base(className: string, props): BasePart
+	Builder.pace()
 	local part = Instance.new(className) :: BasePart
 	part.Anchored = true
 	part.Material = DEFAULT_MATERIAL

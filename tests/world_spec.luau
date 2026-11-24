@@ -13,6 +13,14 @@ local mainScript = ServerScriptService.Server.Main
 describe("servidor", function()
 	it("constrói o mundo sem erros", function()
 		local co = runScript(mainScript)
+		-- a construção faz pausas: avança até o mundo ficar pronto
+		for _ = 1, 5000 do
+			local info = ReplicatedStorage:FindFirstChild("CourseInfo")
+			if info and info:GetAttribute("Ready") then
+				break
+			end
+			Roblox.step(0.1)
+		end
 		Roblox.step(0.1)
 		expect(coroutine.status(co) == "dead" or coroutine.status(co) == "suspended", "script do servidor travou")
 		expect(workspace:FindFirstChild("Mundo"), "pasta Mundo não foi criada")

@@ -15,6 +15,8 @@
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
 
+local Builder = require(script.Parent.Builder)
+
 local TerrainBuilder = {}
 
 local M = Enum.Material
@@ -99,6 +101,7 @@ local function peak(terrain: Terrain, rng: Random, base: Vector3, radius: number
 		local y = base.Y + height * t - rr * 0.35
 		local jitter = Vector3.new(rng:NextNumber(-0.12, 0.12) * radius, 0, rng:NextNumber(-0.12, 0.12) * radius)
 		local material = (t < 0.3) and M.Grass or ((t < 0.75) and M.Slate or M.Limestone)
+		Builder.pace()
 		terrain:FillBall(Vector3.new(base.X, y, base.Z) + jitter * t, rr, material)
 	end
 	-- ombros e cristas laterais (quebram a simetria)
@@ -106,13 +109,16 @@ local function peak(terrain: Terrain, rng: Random, base: Vector3, radius: number
 		local a = rng:NextNumber(0, math.pi * 2)
 		local d = radius * rng:NextNumber(0.5, 0.8)
 		local rr = radius * rng:NextNumber(0.35, 0.55)
+		Builder.pace()
 		terrain:FillBall(base + Vector3.new(math.cos(a) * d, height * rng:NextNumber(0.1, 0.35), math.sin(a) * d), rr, (i == 1) and M.Grass or M.Rock)
 	end
 end
 
 -- Chão do mundo, colinas suaves, serras e picos distantes no horizonte.
 function TerrainBuilder.buildGround(terrain: Terrain, rng: Random, center: Vector3, clearance, blocked)
+	Builder.pace()
 	terrain:FillCylinder(CFrame.new(center.X, -12, center.Z), 24, 1150, M.Grass)
+	Builder.pace()
 	terrain:FillCylinder(CFrame.new(center.X, -30, center.Z), 12, 1150, M.Rock)
 
 	-- manchas de capim e terra no chão (o prado não fica liso e igual)
@@ -120,6 +126,7 @@ function TerrainBuilder.buildGround(terrain: Terrain, rng: Random, center: Vecto
 		local a = rng:NextNumber(0, math.pi * 2)
 		local d = rng:NextNumber(300, 1000)
 		local p = Vector3.new(center.X + math.cos(a) * d, -0.4, center.Z + math.sin(a) * d)
+		Builder.pace()
 		terrain:FillCylinder(CFrame.new(p), 0.8, rng:NextNumber(14, 40), (rng:NextNumber() < 0.7) and M.LeafyGrass or M.Ground)
 	end
 
@@ -136,7 +143,9 @@ function TerrainBuilder.buildGround(terrain: Terrain, rng: Random, center: Vecto
 			ok = not blocked(Vector3.new(c.X, 0, c.Z), r + 8)
 		end
 		if ok then
+			Builder.pace()
 			terrain:FillBall(c - Vector3.new(0, 3, 0), r, M.Rock)
+			Builder.pace()
 			terrain:FillBall(c, r, M.Grass)
 			table.insert(mounds, { c = c, r = r })
 		end
@@ -148,7 +157,9 @@ function TerrainBuilder.buildGround(terrain: Terrain, rng: Random, center: Vecto
 		local dist = rng:NextNumber(780, 960)
 		local radius = rng:NextNumber(110, 210)
 		local p = Vector3.new(center.X + math.cos(angle) * dist, rng:NextNumber(-radius * 0.65, -radius * 0.35), center.Z + math.sin(angle) * dist)
+		Builder.pace()
 		terrain:FillBall(p - Vector3.new(0, 12, 0), radius, M.Rock)
+		Builder.pace()
 		terrain:FillBall(p, radius * 0.97, M.Grass)
 	end
 	-- picos altos atrás das serras (silhueta recortada contra o pôr do sol)
@@ -184,6 +195,7 @@ end
 local function tryBall(terrain: Terrain, clearance, p: Vector3, radius: number, material): boolean
 	local half = Vector3.new(radius + 1, radius + 1, radius + 1)
 	if clearance:isFree(p - half, p + half + Vector3.new(0, 7, 0)) then
+		Builder.pace()
 		terrain:FillBall(p, radius, material)
 		return true
 	end
@@ -257,8 +269,10 @@ function TerrainBuilder.buildMesa(terrain: Terrain, rng: Random, clearance, rect
 	local height = top - bottom
 	local cf = frame(Vector3.new(rect.center.X, bottom + (height - 4) / 2, rect.center.Z), rect.yaw)
 	if height > 4 then
+		Builder.pace()
 		terrain:FillBlock(cf, Vector3.new(rect.width, height - 4, rect.length), theme.body)
 	end
+	Builder.pace()
 	terrain:FillBlock(frame(Vector3.new(rect.center.X, top - 2, rect.center.Z), rect.yaw), Vector3.new(rect.width, 4, rect.length), theme.top)
 	naturalSlopes(terrain, rng, clearance, rect, top, bottom, theme)
 end
@@ -268,16 +282,22 @@ function TerrainBuilder.carveWater(terrain: Terrain, center: Vector3, yaw: numbe
 	local surface = center.Y
 	local bankTop = bank or (surface + 1.2)
 	local carveH = bankTop - (surface - depth) + 4
+	Builder.pace()
 	terrain:FillBlock(frame(Vector3.new(center.X, surface - depth + carveH / 2, center.Z), yaw), Vector3.new(width, carveH, length), M.Air)
 	-- leito de areia/lodo
+	Builder.pace()
 	terrain:FillBlock(frame(Vector3.new(center.X, surface - depth - 1, center.Z), yaw), Vector3.new(width + 2, 3, length + 2), M.Sand)
+	Builder.pace()
 	terrain:FillBlock(frame(Vector3.new(center.X, surface - depth / 2, center.Z), yaw), Vector3.new(width, depth, length), M.Water)
 end
 
 function TerrainBuilder.carvePond(terrain: Terrain, center: Vector3, radius: number, depth: number)
 	local cf = CFrame.new(center.X, center.Y - depth / 2 + 1, center.Z)
+	Builder.pace()
 	terrain:FillCylinder(cf, depth + 2, radius, M.Air)
+	Builder.pace()
 	terrain:FillCylinder(CFrame.new(center.X, center.Y - depth - 0.5, center.Z), 2, radius + 1, M.Sand)
+	Builder.pace()
 	terrain:FillCylinder(CFrame.new(center.X, center.Y - depth / 2 - 0.6, center.Z), depth - 0.6, radius, M.Water)
 end
 
@@ -345,8 +365,11 @@ function TerrainBuilder.build(layout, clearance, rng: Random)
 		elseif prop.type == "ravine" then
 			-- ravina: abre o chão e coloca um rio no fundo
 			local c = d.center
+			Builder.pace()
 			terrain:FillBlock(frame(Vector3.new(c.X, c.Y - d.depth / 2 + 2, c.Z), d.yaw), Vector3.new(d.width, d.depth + 4, d.length), M.Air)
+			Builder.pace()
 			terrain:FillBlock(frame(Vector3.new(c.X, c.Y - d.depth - 1, c.Z), d.yaw), Vector3.new(d.width + 4, 4, d.length + 4), M.Mud)
+			Builder.pace()
 			terrain:FillBlock(frame(Vector3.new(c.X, c.Y - d.depth + 1.5, c.Z), d.yaw), Vector3.new(d.width * 0.45, 3, d.length + 4), M.Water)
 		elseif prop.type == "pond" then
 			TerrainBuilder.carvePond(terrain, d.center, d.radius, d.depth or 3)

@@ -233,6 +233,7 @@ end
 -- ===================================================================
 
 local function place(template: Model, position: Vector3, scale: number, rng: Random, parent: Instance, recolor): Model
+	Builder.pace()
 	local clone = template:Clone()
 	clone:PivotTo(CFrame.new(position) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0))
 	if math.abs(scale - 1) > 0.01 then
