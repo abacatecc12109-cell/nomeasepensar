@@ -1,0 +1,61 @@
+{
+  "name": "MundoDasCerejeiras",
+  "tree": {
+    "$className": "DataModel",
+
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+
+    "StarterPlayer": {
+      "$properties": {
+        "CharacterWalkSpeed": 16,
+        "CharacterUseJumpPower": false,
+        "CharacterJumpHeight": 7.2,
+        "CharacterMaxSlopeAngle": 50,
+        "CameraMaxZoomDistance": 60
+      },
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+
+    "Workspace": {
+      "$properties": {
+        "Gravity": 196.2,
+        "StreamingEnabled": true,
+        "StreamingTargetRadius": 900,
+        "StreamingMinRadius": 256
+      }
+    },
+
+    "Lighting": {
+      "$properties": {
+        "Technology": "Future",
+        "ClockTime": 16.6,
+        "GeographicLatitude": 30,
+        "Brightness": 2.4,
+        "EnvironmentDiffuseScale": 1,
+        "EnvironmentSpecularScale": 0.6,
+        "GlobalShadows": true,
+        "ShadowSoftness": 0.35
+      }
+    },
+
+    "SoundService": {
+      "$properties": {
+        "RespectFilteringEnabled": true
+      }
+    }
+  }
+}
