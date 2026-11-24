@@ -66,7 +66,6 @@ function TerrainBuilder.configure(terrain: Terrain)
 	terrain.WaterReflectance = 0.35
 	terrain.WaterWaveSize = 0.08
 	terrain.WaterWaveSpeed = 6
-	terrain.Decoration = true -- grama animada (leve, feita pela engine)
 end
 
 -- Chão do mundo e colinas distantes que formam o horizonte.

@@ -1,0 +1,54 @@
+name: Publicar no Roblox
+
+# Todo envio publica no jogo de TESTE. O jogo PUBLICO so com o botao "Run workflow".
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+    inputs:
+      destino:
+        description: Onde publicar
+        type: choice
+        options: [teste, publico]
+        default: teste
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publicar-roblox
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm test
+      - name: Montar o jogo com Rojo
+        run: |
+          curl -fsSL -o rojo.zip https://github.com/rojo-rbx/rojo/releases/download/v7.7.1/rojo-7.7.1-linux-x86_64.zip
+          unzip -q rojo.zip -d rojo-bin
+          chmod +x rojo-bin/rojo
+          rojo-bin/rojo build -o jogo.rbxl
+      - name: Publicar
+        env:
+          API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          DESTINO: ${{ inputs.destino || 'teste' }}
+          TESTE_U: ${{ vars.TESTE_UNIVERSE_ID }}
+          TESTE_P: ${{ vars.TESTE_PLACE_ID }}
+          PUB_U: ${{ vars.PUBLICO_UNIVERSE_ID }}
+          PUB_P: ${{ vars.PUBLICO_PLACE_ID }}
+        run: |
+          if [ "$DESTINO" = publico ]; then U="$PUB_U"; P="$PUB_P"; else U="$TESTE_U"; P="$TESTE_P"; fi
+          if [ -z "$API_KEY" ] || [ -z "$U" ] || [ -z "$P" ]; then
+            echo "::warning::Falta ROBLOX_API_KEY ou os IDs do jogo ($DESTINO). Nada foi publicado."
+            [ "$GITHUB_EVENT_NAME" = push ] && exit 0 || exit 1
+          fi
+          curl -sS --fail-with-body -X POST \
+            "https://apis.roblox.com/universes/v1/$U/places/$P/versions?versionType=Published" \
+            -H "x-api-key: $API_KEY" -H "Content-Type: application/octet-stream" --data-binary @jogo.rbxl

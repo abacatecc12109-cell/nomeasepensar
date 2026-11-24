@@ -1,0 +1,1 @@
+{"name":"mundo-das-cerejeiras","private":true,"scripts":{"test":"node tests/proibidos.mjs && node tests/run.mjs"},"devDependencies":{"@luau-rs/luau":"^0.739.0"}}
