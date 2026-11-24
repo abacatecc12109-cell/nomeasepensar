@@ -16,10 +16,12 @@ return function(L)
 	L:checkpoint({ label = "Jardim Celestial" })
 	L:walk(22)
 	L:prop("lake", {
-		from = L:at(-24, 0, -6),
-		to = L:at(-24, 0, 30),
+		center = L:at(-26, -0.8, 12),
+		yaw = L.yaw,
 		width = 24,
-		surface = garden.top - 0.8,
+		length = 36,
+		depth = 3,
+		bank = garden.top + 0.5,
 		decorative = true,
 	})
 	L:prop("temple", { position = L:at(24, 0, 10) })

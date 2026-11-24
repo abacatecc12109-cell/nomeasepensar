@@ -943,10 +943,14 @@ INST.__newindex = function(self, k, v)
 		if props.ClassName == "TrussPart" then
 			check(v.X == 2 and v.Z == 2 or v.X == 2 and v.Y == 2 or v.Y == 2 and v.Z == 2, "TrussPart precisa de seção 2x2")
 		end
+	elseif k == "Color" and (props.ClassName == "ParticleEmitter" or props.ClassName == "Beam" or props.ClassName == "Trail") then
+		check(mtypeof(v) == "ColorSequence", k .. " de partículas espera ColorSequence")
 	elseif (k == "Color" or k == "TextColor3" or k == "BackgroundColor3" or k == "ImageColor3") then
 		check(getmetatable(v) == C3, k .. " espera Color3")
 	elseif k == "Material" then
 		check(mtypeof(v) == "EnumItem" and v.EnumType == "Material", "Material espera Enum.Material")
+	elseif k == "Transparency" and (props.ClassName == "ParticleEmitter" or props.ClassName == "Beam" or props.ClassName == "Trail") then
+		check(mtypeof(v) == "NumberSequence", k .. " de partículas espera NumberSequence")
 	elseif (k == "Transparency" or k == "BackgroundTransparency" or k == "TextTransparency") then
 		check(isNum(v), k .. " espera número")
 	elseif k == "Size" or k == "Position" then
@@ -1415,6 +1419,15 @@ function M.spawnCharacter(p)
 	getSignal(p, "CharacterAdded"):Fire(char)
 	return char
 end
+
+function methods.LoadCharacter(self)
+	if self.Character then
+		self.Character:Destroy()
+	end
+	return M.spawnCharacter(self)
+end
+function methods.RequestStreamAroundAsync() end
+function methods.Kick() end
 
 local RunService = service("RunService")
 RunService.__props.Heartbeat = Signal.new()

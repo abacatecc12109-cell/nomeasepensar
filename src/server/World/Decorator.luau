@@ -308,6 +308,12 @@ function Decorator.build(layout, root: Instance, rng: Random, clearance, worldIn
 			Nature.giantTree(d, rng, parent, clearance)
 		elseif prop.type == "waterfall" then
 			Water.waterfall(d, parent)
+			if d.pool then
+				local f = Vector3.new(math.sin(d.yaw), 0, math.cos(d.yaw))
+				local r = d.width / 2 + 2
+				local c = d.top - Vector3.new(0, d.drop, 0) + f * r
+				clearance:reserve(c - Vector3.new(r, 2, r), c + Vector3.new(r, 4, r), "pool")
+			end
 		elseif prop.type == "bench" then
 			Structures.bench(d.position, d.yaw + math.rad(90), parent)
 			clearance:reserve(d.position - Vector3.new(3, 0, 3), d.position + Vector3.new(3, 3, 3), "bench")
@@ -328,6 +334,20 @@ function Decorator.build(layout, root: Instance, rng: Random, clearance, worldIn
 		elseif prop.type == "pond" then
 			Water.lilies(d.center, d.radius - 1, rng, parent, 5)
 			clearance:reserve(d.center - Vector3.new(d.radius, 2, d.radius), d.center + Vector3.new(d.radius, 3, d.radius), "pond")
+		elseif prop.type == "river" or prop.type == "stream" then
+			local ext = math.max(d.width, d.length) / 2 + 1.5
+			if math.max(d.width, d.length) < 60 then
+				clearance:reserve(d.center - Vector3.new(ext, 2, ext), d.center + Vector3.new(ext, 3, ext), "river")
+			end
+			for i = 1, 4 do
+				local f = Vector3.new(math.sin(d.yaw), 0, math.cos(d.yaw))
+				local r = Vector3.new(-math.cos(d.yaw), 0, math.sin(d.yaw))
+				local side = (i % 2 == 0) and 1 or -1
+				local p = d.center + Vector3.new(0, 0.6, 0) + r * side * (d.width / 2 + 1) + f * rng:NextNumber(-d.length / 2, d.length / 2)
+				if math.max(d.width, d.length) < 60 and clearance:isFreeAt(p, 1, 3) then
+					Nature.reeds(p, rng, parent)
+				end
+			end
 		elseif prop.type == "lake" then
 			local reach = math.min(d.width, d.length) / 2 - 2
 			if d.decorative then
