@@ -2,9 +2,10 @@
 	CheckpointVisuals (cliente)
 	---------------------------
 	Muda o visual dos checkpoints conforme o progresso DESTE jogador:
-	  * ainda não alcançado: pedra clara, cristal apagado
-	  * já ativado: cristal e faixa rosa
-	  * atual: cristal brilhando, girando, com partículas e luz
+	  * ainda não alcançado: estrela clara, apagada
+	  * já ativado: estrela rosa
+	  * atual: estrela brilhando, girando, com partículas e luz
+	O checkpoint é só a estrela (sem faixa, anel ou pilar).
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -23,15 +24,9 @@ local crystalHome: CFrame? = nil
 
 local function paint(model: Model, state: string)
 	local crystal = model:FindFirstChild("Crystal") :: BasePart?
-	local ring = model:FindFirstChild("Ring") :: BasePart?
-	local banner = model:FindFirstChild("Banner") :: BasePart?
 	local color = state == "idle" and P.CheckpointIdle or P.CheckpointActive
-	for _, part in { crystal, ring, banner } do
-		if part then
-			part.Color = color
-		end
-	end
 	if crystal then
+		crystal.Color = color
 		local glow = crystal:FindFirstChild("Glow") :: PointLight?
 		if glow then
 			glow.Brightness = state == "current" and 1.4 or 0

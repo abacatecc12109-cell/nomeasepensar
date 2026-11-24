@@ -943,7 +943,7 @@ INST.__newindex = function(self, k, v)
 		if props.ClassName == "TrussPart" then
 			check(v.X == 2 and v.Z == 2 or v.X == 2 and v.Y == 2 or v.Y == 2 and v.Z == 2, "TrussPart precisa de seção 2x2")
 		end
-	elseif k == "Color" and (props.ClassName == "ParticleEmitter" or props.ClassName == "Beam" or props.ClassName == "Trail") then
+	elseif k == "Color" and (props.ClassName == "ParticleEmitter" or props.ClassName == "Beam" or props.ClassName == "Trail" or props.ClassName == "UIGradient") then
 		check(mtypeof(v) == "ColorSequence", k .. " de partículas espera ColorSequence")
 	elseif (k == "Color" or k == "TextColor3" or k == "BackgroundColor3" or k == "ImageColor3") then
 		check(getmetatable(v) == C3, k .. " espera Color3")

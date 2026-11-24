@@ -1,7 +1,8 @@
 --[[
 	Região 5 — Jardim Celestial
 	O topo do mundo: grande jardim com cerejeiras gigantes, lagos e cascatas,
-	flores luminosas, um último desafio sobre a cascata e o mirante final.
+	flores luminosas, um desafio sobre a cascata e o mirante, de onde
+	saem as ilhas de nuvem.
 	Também ergue o maciço central (a montanha que sustenta o jardim).
 ]]
 
@@ -41,9 +42,13 @@ return function(L)
 	-- Escadaria final até o mirante
 	L:stairs({ steps = 16, stepRise = 1, stepRun = 2, width = 8, style = "marble" })
 	local summit = L:zone("summit", 36, 36)
-	L:walk(18)
-	L:finish({ label = "Mirante do Céu" })
+	L:walk(10)
+	L:checkpoint({ label = "Mirante do Céu" })
+	-- o caminho passa por baixo do pagode (só tem postes nos cantos) e segue
+	-- para as ilhas de nuvem
 	L:prop("pagoda", { position = L:at(0, 0, 0), ground = summit.top })
+	L:walk(6)
+	L:walkToEdge()
 
 	-- Maciço central: degraus de montanha sob o jardim, o santuário e o mirante
 	local function under(zone, grow, drop)

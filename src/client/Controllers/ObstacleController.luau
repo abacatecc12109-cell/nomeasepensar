@@ -34,6 +34,7 @@ local logs = {}
 local gusts = {}
 local spinners = {}
 local fragile = {} -- [part] = estado
+ObstacleController.collapseListeners = {} -- avisados quando uma peça frágil começa a cair
 local shaking = {}
 
 -- ===================================================================
@@ -124,9 +125,26 @@ local function addSpinner(model: Model)
 	}
 end
 
+-- Peças visuais penduradas na peça frágil (bolas das nuvens) se movem junto.
+-- É recalculado na hora de cair: com streaming, os filhos podem chegar depois.
+local function collectVisuals(part: BasePart, home: CFrame)
+	local visuals = {}
+	for _, child in part:GetDescendants() do
+		if child:IsA("BasePart") then
+			table.insert(visuals, {
+				part = child,
+				offset = home:ToObjectSpace(child.CFrame),
+				transparency = child.Transparency,
+			})
+		end
+	end
+	return visuals
+end
+
 local function addFragile(part: BasePart)
 	fragile[part] = {
 		home = part.CFrame,
+		visuals = collectVisuals(part, part.CFrame),
 		transparency = part.Transparency,
 		delay = part:GetAttribute("Delay") or 0.5,
 		respawn = part:GetAttribute("Respawn") or 3.5,
@@ -144,13 +162,31 @@ end
 -- Tábuas e pedras frágeis
 -- ===================================================================
 
+-- Move a peça frágil (e o visual pendurado nela) para `cf`, com opacidade k
+local function placeFragile(part: BasePart, state, cf: CFrame, fade: number)
+	part.CFrame = cf
+	part.Transparency = state.transparency + (1 - state.transparency) * fade
+	for _, v in state.visuals do
+		if v.part.Parent then
+			v.part.CFrame = cf * v.offset
+			v.part.Transparency = v.transparency + (1 - v.transparency) * fade
+		end
+	end
+end
+
 local function collapse(part: BasePart)
 	local state = fragile[part]
 	if not state or state.busy then
 		return
 	end
 	state.busy = true
+	if #state.visuals == 0 or #state.visuals ~= #part:GetDescendants() then
+		state.visuals = collectVisuals(part, state.home)
+	end
 	shaking[part] = state
+	for _, fn in ObstacleController.collapseListeners do
+		task.spawn(fn, part)
+	end
 	task.delay(state.delay, function()
 		shaking[part] = nil
 		if not part.Parent then
@@ -161,8 +197,7 @@ local function collapse(part: BasePart)
 		local conn
 		conn = RunService.Heartbeat:Connect(function()
 			local k = math.min((os.clock() - start) / 0.9, 1)
-			part.CFrame = state.home * CFrame.new(0, -k * k * 24, 0) * CFrame.Angles(k * 0.6, 0, k * 0.4)
-			part.Transparency = state.transparency + (1 - state.transparency) * k
+			placeFragile(part, state, state.home * CFrame.new(0, -k * k * 24, 0) * CFrame.Angles(k * 0.6, 0, k * 0.4), k)
 			if k >= 1 then
 				conn:Disconnect()
 			end
@@ -172,8 +207,7 @@ local function collapse(part: BasePart)
 				conn:Disconnect()
 			end
 			if part.Parent then
-				part.CFrame = state.home
-				part.Transparency = state.transparency
+				placeFragile(part, state, state.home, 0)
 				part.CanCollide = true
 			end
 			state.busy = false
@@ -274,7 +308,7 @@ local function step(dt: number)
 
 	-- tremor das peças frágeis (aviso antes de cair)
 	for part, state in shaking do
-		part.CFrame = state.home * CFrame.new(math.random() * 0.16 - 0.08, 0, math.random() * 0.16 - 0.08)
+		placeFragile(part, state, state.home * CFrame.new(math.random() * 0.16 - 0.08, 0, math.random() * 0.16 - 0.08), 0)
 	end
 
 	-- o que está sob os pés?

@@ -152,7 +152,7 @@ local function onReached(player: Player, index: number, data)
 			player:SetAttribute(A.BestTime, elapsed)
 		end
 		remotes.RunFinished:FireClient(player, elapsed, newRecord and elapsed or best, newRecord)
-		remotes.Announcement:FireAllClients(string.format("🌸 %s chegou ao Mirante do Céu em %s!", player.DisplayName, formatTime(elapsed)))
+		remotes.Announcement:FireAllClients(string.format("🌸 %s chegou ao Trono do Sol em %s!", player.DisplayName, formatTime(elapsed)))
 	end
 	save(player)
 end

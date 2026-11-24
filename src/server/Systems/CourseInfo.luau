@@ -34,6 +34,13 @@ function CourseInfo.publish(layout)
 		info:SetAttribute("Checkpoint" .. cp.index .. "Y", cp.position.Y)
 		info:SetAttribute("Checkpoint" .. cp.index .. "Region", cp.region)
 	end
+	-- centro do mapa (para pássaros e outros efeitos do cliente)
+	local sum, n = Vector3.zero, 0
+	for _, z in layout.zones do
+		sum += Vector3.new(z.center.X, 0, z.center.Z)
+		n += 1
+	end
+	info:SetAttribute("WorldCenter", n > 0 and sum / n or Vector3.zero)
 	info:SetAttribute("StartY", cps[1].position.Y)
 	info:SetAttribute("SummitY", cps[#cps].position.Y)
 	info:SetAttribute("Ready", true)

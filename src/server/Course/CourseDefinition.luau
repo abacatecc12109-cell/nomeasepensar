@@ -20,6 +20,8 @@ local order = {
 	"R3_Cliffs",
 	"R4_CloudForest",
 	"R5_Celestial",
+	"R6_CloudIslands",
+	"R7_SunsetSky",
 }
 
 function CourseDefinition.build()
