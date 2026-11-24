@@ -1519,6 +1519,7 @@ end
 local Debris = service("Debris")
 function methods.AddItem() end
 
+service("MarketplaceService")
 local UIS = service("UserInputService")
 UIS.TouchEnabled = false
 UIS.KeyboardEnabled = true

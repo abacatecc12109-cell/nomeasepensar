@@ -146,15 +146,33 @@ local function onReached(player: Player, index: number, data)
 		local start = player:GetAttribute(A.RunStart) or now()
 		local elapsed = now() - start
 		local best = player:GetAttribute(A.BestTime) or 0
-		local newRecord = best == 0 or elapsed < best
+		local newRecord = (best == 0 or elapsed < best) and not player:GetAttribute("Skipped")
 		player:SetAttribute(A.RunFinish, elapsed)
 		if newRecord then
 			player:SetAttribute(A.BestTime, elapsed)
 		end
-		remotes.RunFinished:FireClient(player, elapsed, newRecord and elapsed or best, newRecord)
+		remotes.RunFinished:FireClient(player, elapsed, (newRecord or best == 0) and elapsed or best, newRecord)
 		remotes.Announcement:FireAllClients(string.format("🌸 %s chegou ao Trono do Sol em %s!", player.DisplayName, formatTime(elapsed)))
 	end
 	save(player)
+end
+
+-- Compra "pular fase": avança um checkpoint (nunca direto para a chegada).
+-- Quem pulou não marca recorde nessa subida.
+function ProgressService.skip(player: Player): boolean
+	local index = (player:GetAttribute(A.Checkpoint) or 1) + 1
+	local cp = checkpointService.get(index)
+	if not cp or cp.data.finish then
+		return false
+	end
+	player:SetAttribute("Skipped", true)
+	player:SetAttribute(A.Checkpoint, index)
+	save(player)
+	remotes.CheckpointReached:FireClient(player, index, cp.data.label, false)
+	if player.Character then
+		ProgressService.resetToCheckpoint(player, "skip")
+	end
+	return true
 end
 
 local function onRestart(player: Player)
@@ -164,6 +182,7 @@ local function onRestart(player: Player)
 	end
 	lastRestart[player] = t
 	player:SetAttribute(A.Checkpoint, 1)
+	player:SetAttribute("Skipped", nil)
 	player:SetAttribute(A.RunFinish, 0)
 	player:SetAttribute(A.RunStart, now())
 	save(player)
@@ -205,6 +224,9 @@ function ProgressService.init(cpService)
 	remotes = Remotes.get()
 	cpService.onReached(onReached)
 	remotes.RequestRestart.OnServerEvent:Connect(onRestart)
+	remotes.RequestReturn.OnServerEvent:Connect(function(player)
+		ProgressService.resetToCheckpoint(player, "return")
+	end)
 	Players.PlayerAdded:Connect(onPlayerAdded)
 	Players.PlayerRemoving:Connect(function(player)
 		save(player)

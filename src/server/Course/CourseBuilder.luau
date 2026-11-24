@@ -72,6 +72,16 @@ function CourseBuilder.build(layout, root: Instance, rng: Random)
 	for _, e in layout.elements do
 		local regionFolder = folderFor(e.region)
 		local parent = Builder.model(string.format("%03d_%s", e.id, e.kind), regionFolder)
+		local mini = e.params and e.params.mini
+		if mini then
+			parent:SetAttribute("MiniIndex", mini.index)
+			if mini.kind then
+				parent:SetAttribute("MiniKind", mini.kind)
+				parent:SetAttribute("MiniLevel", mini.level)
+				parent:SetAttribute("MiniCFrame", CFrame.new(e.center.X, e.top, e.center.Z) * CFrame.Angles(0, e.yaw, 0))
+			end
+			parent:AddTag(mini.kind and "Minigame" or "MiniGate")
+		end
 		if e.kind == "zone" then
 			Pieces.zonePath(e, parent, rng)
 		elseif e.kind == "pad" then

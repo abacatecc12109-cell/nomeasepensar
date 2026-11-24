@@ -13,6 +13,7 @@ local NAMES = {
 	"RunFinished", -- servidor -> cliente (tempo, recorde, novoRecorde)
 	"Announcement", -- servidor -> todos (texto)
 	"RequestRestart", -- cliente -> servidor
+	"RequestReturn", -- cliente -> servidor (voltar ao checkpoint)
 }
 
 local Remotes = {}

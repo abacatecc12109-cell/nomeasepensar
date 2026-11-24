@@ -136,6 +136,13 @@ local CYCLE = { "hops", "ferry", "stairs", "crumble", "rainbow", "lift", "drift"
 
 SkyPhases.Challenges = challenges
 
+-- Minigames (veja MinigameController). Nas fases finais eles se repetem, mais difíceis.
+local MINIGAMES = {
+	"coletar", "reacao", "numeros", "cores", "quiz", "holofote", "memoria", "laser", "caminho",
+	"encolhe", "diferente", "conta", "semaforo", "pares", "ritmo", "meteoros", "luzes", "paredes",
+}
+SkyPhases.Minigames = MINIGAMES
+
 --[[
 	Constrói `count` fases.
 	opts:
@@ -153,19 +160,33 @@ function SkyPhases.build(L, count: number, opts)
 	for i = 1, count do
 		local index = opts.firstIndex + i - 1
 		local last = opts.finish and i == count
-		local size = last and 26 or 14
+		-- de cada 3 fases, 2 são minigames e 1 é parkour
+		local mini = not last and index % 3 ~= 0
+		local order = index - math.floor(index / 3) -- 1, 2, 3... só entre os minigames
+		local size = (last or mini) and 26 or 14
 		local deck = L:zone(look.deck, size, size, { gap = 3, rise = 1, surface = "deck" })
 		table.insert(islands, deck)
-		L:walk(size / 2)
+		L:walk(mini and 4 or size / 2)
 		local label = names[((index - 1) % #names) + 1]
 		if last then
 			L:finish({ label = opts.finishLabel or label })
 			break
 		end
 		L:checkpoint({ label = string.format("%s · Fase %d", label, index) })
+		if mini then
+			local cp = #L.checkpoints
+			deck.params.mini = { index = cp, kind = MINIGAMES[(order - 1) % #MINIGAMES + 1], level = index }
+			L:walk(9)
+			SkyPhases.aim(L, spiral, 40)
+			L:walkToEdge()
+			-- ponte de saída: só abre para quem vence
+			local bridge = L:beam({ length = 14, width = 4, tilt = 4, style = "rainbow" })
+			bridge.params.mini = { index = cp }
+			continue
+		end
 		SkyPhases.aim(L, spiral, 52)
 		L:walkToEdge()
-		local kind = CYCLE[((index - 1) % #CYCLE) + 1]
+		local kind = CYCLE[(index // 3 - 1) % #CYCLE + 1]
 		challenges[kind](L, index, look)
 	end
 	return islands

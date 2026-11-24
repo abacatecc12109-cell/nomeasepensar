@@ -40,6 +40,32 @@ describe("cliente", function()
 		expect(player.PlayerGui:FindFirstChild("HUD"), "HUD não criada")
 	end)
 
+	it("todos os minigames rodam sem erro", function()
+		local MC = require(StarterPlayer.StarterPlayerScripts.Client.Controllers.MinigameController)
+		local n = 0
+		for kind in MC.Games do
+			n += 1
+			for _, level in { 1, 32, 63 } do
+				local cf = CFrame.new(0, 900, 0)
+				local g = MC.newGame(kind, level, cf, 9000 + n)
+				for i = 1, 400 do
+					MC.tick(g, 1 / 15, cf * Vector3.new(math.sin(i / 9) * 8, (i % 20 < 8) and 5 or 3, 2 + math.cos(i / 7) * 8))
+				end
+				g.folder:Destroy()
+			end
+		end
+		expect(n == 18, "deveriam ser 18 minigames: " .. n)
+		local used = {}
+		for _, m in CollectionService:GetTagged("Minigame") do
+			expect(MC.Games[m:GetAttribute("MiniKind")], "minigame inexistente")
+			used[m:GetAttribute("MiniKind")] = true
+		end
+		for kind in MC.Games do
+			expect(used[kind], string.format("minigame nunca usado: %s (%d ilhas)", kind, #CollectionService:GetTagged("Minigame")))
+		end
+		expect(#CollectionService:GetTagged("Minigame") == #CollectionService:GetTagged("MiniGate"), "ilha sem ponte")
+	end)
+
 	it("move as plataformas e passa a velocidade ao jogador", function()
 		local m = CollectionService:GetTagged("MovingPlatform")[1]
 		local root = player.Character.HumanoidRootPart

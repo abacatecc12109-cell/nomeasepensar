@@ -717,14 +717,23 @@ function Pieces.climb(c, parent: Instance, rng: Random)
 		local truss = Instance.new("TrussPart")
 		truss.Anchored = true
 		truss.Size = Vector3.new(2, height, 2)
-		truss.CFrame = CFrame.new(c.base - f * 1 + right * lateral + Vector3.new(0, c.height - height / 2, 0)) * rot
+		truss.CFrame = CFrame.new(c.base - f * 1.6 + right * lateral + Vector3.new(0, c.height - height / 2, 0)) * rot
 		truss.Transparency = 1
 		truss.CastShadow = false
 		truss.Name = "Climb"
 		truss.Parent = parent
 		Builder.stats.parts += 1
 	end
-	local face = c.base - f * 0.25
+	local face = c.base - f * 2.5
+	-- painel atrás das vinhas: mostra de longe onde dá para subir
+	Builder.deco({
+		Size = Vector3.new(c.width + 1.4, c.height, 0.5),
+		CFrame = CFrame.new(c.base - f * 0.35 + Vector3.new(0, c.height / 2, 0)) * rot,
+		Color = (c.style == "ladder") and P.WoodDark or P.LeafDeep,
+		Material = (c.style == "ladder") and M.WoodPlanks or M.LeafyGrass,
+		Name = "ClimbPanel",
+		Parent = parent,
+	})
 	if c.style == "ladder" then
 		for _, s in { -1, 1 } do
 			local p = face + right * (s * c.width / 2)

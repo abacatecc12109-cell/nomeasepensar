@@ -25,6 +25,7 @@ local CourseBuilder = require(Server.Course.CourseBuilder)
 local LightingService = require(Server.Systems.LightingService)
 local CourseInfo = require(Server.Systems.CourseInfo)
 local CheckpointService = require(Server.Systems.CheckpointService)
+local SkipService = require(Server.Systems.SkipService)
 local ProgressService = require(Server.Systems.ProgressService)
 
 -- Ninguém nasce antes de o mundo existir
@@ -53,6 +54,7 @@ local decorations = Decorator.build(layout, Builder.folder("Cenario", root), rng
 CourseInfo.publish(layout)
 CheckpointService.init(triggers)
 ProgressService.init(CheckpointService)
+SkipService.init(ProgressService)
 ProgressService.markReady()
 
 local summary = layout:summary()

@@ -254,6 +254,17 @@ function TerrainBuilder.build(layout, clearance, rng: Random)
 		end
 	end
 
+	-- abre espaço na frente das escaladas (o terreno não pode cobrir as vinhas)
+	for _, prop in layout.props do
+		if prop.type == "climb" then
+			local c = prop.data
+			local f = Vector3.new(math.sin(c.yaw), 0, math.cos(c.yaw))
+			local h = c.height + 6
+			Builder.pace()
+			terrain:FillBlock(frame(c.base - f * 4 + Vector3.new(0, 2 + h / 2, 0), c.yaw), Vector3.new(c.width + 5, h, 8), M.Air)
+		end
+	end
+
 	-- água e escavações (depois dos platôs)
 	for _, prop in layout.props do
 		local d = prop.data

@@ -32,6 +32,10 @@ Config.Difficulty = {
 -- Distância de queda abaixo do checkpoint que reinicia o jogador.
 Config.FallResetDepth = 18
 
+-- Produto de Desenvolvedor "Pular fase" (create.roblox.com > Monetização).
+-- 0 = ainda não criado: o botão aparece, mas não vende.
+Config.SkipProductId = 0
+
 -- Nomes de atributos e tags (evita strings mágicas espalhadas)
 Config.Attr = {
 	Checkpoint = "Checkpoint", -- índice do checkpoint atual (Player)
