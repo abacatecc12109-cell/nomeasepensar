@@ -5,7 +5,7 @@
 	  * chão gramado do mundo e colinas no horizonte
 	  * colinas suaves, serras e picos recortados no horizonte
 	  * platôs (zonas) com corpo de rocha, topo de grama e encostas naturais
-	    (borda arredondada, base mais larga, cantos sem quina)
+	    (veja Mountains)
 	  * paredões das trilhas e o maciço central
 	  * riacho, ravina com rio, lagos e laguinhos (água transparente)
 
@@ -16,6 +16,8 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
 
 local Builder = require(script.Parent.Builder)
+
+local Mountains = require(script.Parent.Mountains)
 
 local TerrainBuilder = {}
 
@@ -80,7 +82,7 @@ end
 -- plantar árvores e flores em cima das colinas, e não enterradas nelas.
 local mounds = {}
 function TerrainBuilder.groundHeight(x: number, z: number): number
-	local best = 0
+	local best = Mountains.heightAt(x, z)
 	for _, m in mounds do
 		local dx, dz = x - m.c.X, z - m.c.Z
 		local d2 = dx * dx + dz * dz
@@ -89,29 +91,6 @@ function TerrainBuilder.groundHeight(x: number, z: number): number
 		end
 	end
 	return best
-end
-
--- Pico de montanha: bolas empilhadas que afinam para cima (silhueta de
--- cone irregular), base de grama, meio de rocha e topo claro.
-local function peak(terrain: Terrain, rng: Random, base: Vector3, radius: number, height: number)
-	local steps = 5
-	for k = 0, steps - 1 do
-		local t = k / (steps - 1)
-		local rr = radius * (1 - t * 0.78)
-		local y = base.Y + height * t - rr * 0.35
-		local jitter = Vector3.new(rng:NextNumber(-0.12, 0.12) * radius, 0, rng:NextNumber(-0.12, 0.12) * radius)
-		local material = (t < 0.3) and M.Grass or ((t < 0.75) and M.Slate or M.Limestone)
-		Builder.pace()
-		terrain:FillBall(Vector3.new(base.X, y, base.Z) + jitter * t, rr, material)
-	end
-	-- ombros e cristas laterais (quebram a simetria)
-	for i = 1, 3 do
-		local a = rng:NextNumber(0, math.pi * 2)
-		local d = radius * rng:NextNumber(0.5, 0.8)
-		local rr = radius * rng:NextNumber(0.35, 0.55)
-		Builder.pace()
-		terrain:FillBall(base + Vector3.new(math.cos(a) * d, height * rng:NextNumber(0.1, 0.35), math.sin(a) * d), rr, (i == 1) and M.Grass or M.Rock)
-	end
 end
 
 -- Chão do mundo, colinas suaves, serras e picos distantes no horizonte.
@@ -151,115 +130,8 @@ function TerrainBuilder.buildGround(terrain: Terrain, rng: Random, center: Vecto
 		end
 	end
 
-	-- serras no horizonte: colinas largas, alternando grama e rocha
-	for i = 1, 30 do
-		local angle = (i / 30) * math.pi * 2 + rng:NextNumber(-0.08, 0.08)
-		local dist = rng:NextNumber(780, 960)
-		local radius = rng:NextNumber(110, 210)
-		local p = Vector3.new(center.X + math.cos(angle) * dist, rng:NextNumber(-radius * 0.65, -radius * 0.35), center.Z + math.sin(angle) * dist)
-		Builder.pace()
-		terrain:FillBall(p - Vector3.new(0, 12, 0), radius, M.Rock)
-		Builder.pace()
-		terrain:FillBall(p, radius * 0.97, M.Grass)
-	end
-	-- picos altos atrás das serras (silhueta recortada contra o pôr do sol)
-	for i = 1, 14 do
-		local angle = (i / 14) * math.pi * 2 + 0.4 + rng:NextNumber(-0.1, 0.1)
-		local dist = rng:NextNumber(1020, 1140)
-		local base = Vector3.new(center.X + math.cos(angle) * dist, -20, center.Z + math.sin(angle) * dist)
-		peak(terrain, rng, base, rng:NextNumber(110, 170), rng:NextNumber(170, 320))
-	end
-end
-
--- Ponto no contorno do retângulo (t = distância percorrida) e a normal para fora.
-local function perimeterPoint(rect, t: number)
-	local f = Vector3.new(math.sin(rect.yaw), 0, math.cos(rect.yaw))
-	local r = Vector3.new(-math.cos(rect.yaw), 0, math.sin(rect.yaw))
-	local perimeter = 2 * (rect.width + rect.length)
-	t = t % perimeter
-	local along, side, normal
-	if t < rect.length then
-		along, side, normal = t - rect.length / 2, rect.width / 2, r
-	elseif t < rect.length + rect.width then
-		along, side, normal = rect.length / 2, rect.width / 2 - (t - rect.length), f
-	elseif t < 2 * rect.length + rect.width then
-		along, side, normal = rect.length / 2 - (t - rect.length - rect.width), -rect.width / 2, -r
-	else
-		along, side, normal = -rect.length / 2, -rect.width / 2 + (t - 2 * rect.length - rect.width), -f
-	end
-	local c = Vector3.new(rect.center.X, 0, rect.center.Z) + f * along + r * side
-	return c, normal
-end
-
--- Bola de terreno, só se não invadir o percurso (nem o espaço da cabeça)
-local function tryBall(terrain: Terrain, clearance, p: Vector3, radius: number, material): boolean
-	local half = Vector3.new(radius + 1, radius + 1, radius + 1)
-	if clearance:isFree(p - half, p + half + Vector3.new(0, 7, 0)) then
-		Builder.pace()
-		terrain:FillBall(p, radius, material)
-		return true
-	end
-	return false
-end
-
---[[
-	Encostas naturais: em vez de paredes retas, o platô ganha
-	  * uma borda de grama arredondada logo abaixo do topo;
-	  * camadas de rocha que ficam maiores e mais para fora conforme
-	    descem (a montanha alarga na base, como montanha de verdade);
-	  * cantos arredondados por bolas maiores.
-]]
-local function naturalSlopes(terrain: Terrain, rng: Random, clearance, rect, top: number, bottom: number, theme)
-	local height = top - bottom
-	local perimeter = 2 * (rect.width + rect.length)
-	-- borda de grama (arredonda o contorno visto de cima)
-	local lip = math.clamp(math.floor(perimeter / 8), 6, 70)
-	for i = 1, lip do
-		local c, normal = perimeterPoint(rect, (i - 0.5) / lip * perimeter + rng:NextNumber(-2, 2))
-		local radius = rng:NextNumber(3.5, 6.5)
-		local p = Vector3.new(c.X, top - 1 - radius * 0.85, c.Z) + normal * (radius * 0.25)
-		tryBall(terrain, clearance, p, radius, theme.top)
-	end
-	if height < 8 then
-		return
-	end
-	-- camadas de encosta, cada vez mais largas para baixo
-	local layers = math.clamp(math.floor(height / 10), 1, 9)
-	for k = 1, layers do
-		local t = k / layers
-		local depth = height * t * 0.92
-		local y = top - depth
-		local grow = 1 + t * 1.1
-		local count = math.clamp(math.floor(perimeter / (9 * grow)), 5, 46)
-		for i = 1, count do
-			local c, normal = perimeterPoint(rect, (i - 0.5 + rng:NextNumber(-0.3, 0.3)) / count * perimeter)
-			local radius = rng:NextNumber(4.5, 8.5) * grow
-			local p = Vector3.new(c.X, y, c.Z) + normal * (radius * 0.3 + depth * 0.12)
-			local material = theme.body
-			if k == 1 and rng:NextNumber() < 0.5 then
-				material = theme.top -- tufos verdes pendurados no alto
-			elseif rng:NextNumber() < 0.25 then
-				material = theme.alt
-			end
-			tryBall(terrain, clearance, p, radius, material)
-		end
-	end
-	-- cantos: bolas grandes arredondam as quinas do bloco
-	local f = Vector3.new(math.sin(rect.yaw), 0, math.cos(rect.yaw))
-	local r = Vector3.new(-math.cos(rect.yaw), 0, math.sin(rect.yaw))
-	for _, sx in { -1, 1 } do
-		for _, sz in { -1, 1 } do
-			local corner = Vector3.new(rect.center.X, 0, rect.center.Z) + f * (sz * rect.length / 2) + r * (sx * rect.width / 2)
-			local out = (f * sz + r * sx).Unit
-			for k = 1, math.clamp(math.floor(height / 14), 1, 5) do
-				local radius = math.min(rect.width, rect.length) * 0.12 + 4 + k * 2.5
-				local p = Vector3.new(corner.X, top - 2 - radius * 0.7 - (k - 1) * radius * 0.9, corner.Z) + out * (radius * 0.2 + k * 1.5)
-				if p.Y - radius > bottom - 12 then
-					tryBall(terrain, clearance, p, radius, k == 1 and theme.top or theme.body)
-				end
-			end
-		end
-	end
+	-- cordilheira no horizonte
+	Mountains.horizon(terrain, center, 760, 1150)
 end
 
 -- Platô: corpo de rocha + camada de grama no topo + encostas naturais.
@@ -274,7 +146,6 @@ function TerrainBuilder.buildMesa(terrain: Terrain, rng: Random, clearance, rect
 	end
 	Builder.pace()
 	terrain:FillBlock(frame(Vector3.new(rect.center.X, top - 2, rect.center.Z), rect.yaw), Vector3.new(rect.width, 4, rect.length), theme.top)
-	naturalSlopes(terrain, rng, clearance, rect, top, bottom, theme)
 end
 
 -- Canal de água: escava e enche com água (riacho, rio da ravina, lago)
@@ -352,6 +223,34 @@ function TerrainBuilder.build(layout, clearance, rng: Random)
 	for _, zone in layout.zones do
 		if zone.surface == "terrain" and zone.top > 0.5 then
 			TerrainBuilder.buildMesa(terrain, rng, clearance, zone, zone.theme)
+		end
+	end
+
+	-- encostas naturais (depois de todos os platôs): não cobrem zonas, água nem cachoeiras
+	local others = {}
+	local function protect(rect, cap)
+		table.insert(others, { rect = rect, dist = Mountains.distFn(rect), cap = cap })
+	end
+	for _, zone in layout.zones do
+		protect(zone, zone.top - 1)
+	end
+	for _, prop in layout.props do
+		local d = prop.data
+		if d.width and d.length and d.center then
+			protect({ center = d.center, yaw = d.yaw or 0, width = d.width + 6, length = d.length + 6 }, d.center.Y - 1)
+		elseif prop.type == "pond" then
+			protect({ center = d.center, yaw = 0, width = d.radius * 2 + 4, length = d.radius * 2 + 4 }, d.center.Y - 1)
+		elseif prop.type == "waterfall" then
+			local f = Vector3.new(math.sin(d.yaw), 0, math.cos(d.yaw))
+			protect({ center = d.top + f * 14, yaw = d.yaw, width = d.width + 6, length = 30 }, d.top.Y - d.drop - 1)
+		end
+	end
+	for _, wall in layout.walls do
+		Mountains.slopes(terrain, clearance, wall, themeOf(wall.theme or "cliffwall"), others)
+	end
+	for _, zone in layout.zones do
+		if zone.surface == "terrain" and zone.top > 0.5 then
+			Mountains.slopes(terrain, clearance, zone, themeOf(zone.theme), others)
 		end
 	end
 

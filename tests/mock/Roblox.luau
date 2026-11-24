@@ -1298,6 +1298,27 @@ methods.FillBlock = terrainCall("FillBlock")
 methods.FillBall = terrainCall("FillBall")
 methods.FillCylinder = terrainCall("FillCylinder")
 methods.FillWedge = terrainCall("FillWedge")
+-- voxels: lê tudo vazio e confere as dimensões na escrita
+function methods.ReadVoxels(_, region, res)
+	local s = (region.max - region.min) / res
+	local mats, occ = {}, {}
+	for x = 1, s.X do
+		mats[x], occ[x] = {}, {}
+		for y = 1, s.Y do
+			mats[x][y], occ[x][y] = {}, {}
+			for z = 1, s.Z do
+				mats[x][y][z], occ[x][y][z] = Enum.Material.Air, 0
+			end
+		end
+	end
+	return mats, occ
+end
+function methods.WriteVoxels(_, region, res, mats, occ)
+	stats.terrainCalls += 1
+	local s = (region.max - region.min) / res
+	assert(#mats == s.X and #mats[1] == s.Y and #mats[1][1] == s.Z and #occ == s.X, "WriteVoxels: dimensões erradas")
+	assert(s.X * s.Y * s.Z <= 4194304, "WriteVoxels: região grande demais")
+end
 methods.SetMaterialColor = terrainCall("SetMaterialColor")
 methods.Clear = function() end
 
@@ -1548,6 +1569,9 @@ function M.install(target)
 	target.Enum = Enum
 	target.Instance = Instance
 	target.Random = Random
+	target.Region3 = { new = function(a, b)
+		return { min = a, max = b }
+	end }
 	target.task = task
 	target.game = game
 	target.workspace = workspace

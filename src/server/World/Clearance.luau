@@ -98,6 +98,22 @@ function Clearance:isFree(minV: Vector3, maxV: Vector3): boolean
 	return true
 end
 
+-- Até que altura o terreno pode subir em (x, z) sem encostar no percurso.
+function Clearance:ceiling(x: number, z: number, r: number, floorY: number): number
+	local best = math.huge
+	local p = Vector3.new(x, 0, z)
+	for _, k in self:_cellsFor(Vector3.new(x - r, 0, z - r), Vector3.new(x + r, 0, z + r)) do
+		for _, box in self.cells[k] or {} do
+			if box.max.Y > floorY and box.min.Y < best and x + r > box.min.X and x - r < box.max.X and z + r > box.min.Z and z - r < box.max.Z then
+				if not box.segment or distToSegment2D(p, box.a, box.b) < box.radius + r then
+					best = box.min.Y
+				end
+			end
+		end
+	end
+	return best
+end
+
 -- Atalho: um objeto de raio r e altura h apoiado no ponto p está livre?
 function Clearance:isFreeAt(p: Vector3, r: number, h: number): boolean
 	return self:isFree(Vector3.new(p.X - r, p.Y, p.Z - r), Vector3.new(p.X + r, p.Y + h, p.Z + r))
